@@ -16,6 +16,11 @@ const FIXTURES = [{"id":1,"stage":"GROUP","group_name":"A","matchday":1,"orderin
 /* ---- scoring rules (change these if you want) ---- */
 const POINTS = { EXACT: 20, RESULT: 15, MISS: 0 };
 
+/* ---- manage PIN ----
+   Change the number below to update the PIN. */
+const MANAGE_PIN = "1122";
+let manageUnlocked = false;
+
 /* ---- frozen games ----
    Match IDs listed here are FROZEN: locked from predictions and NOT counted
    in the leaderboard. (Group-stage MD1 games 1–12 come before Belgium v Egypt.)
@@ -148,7 +153,10 @@ function render() {
   if (keysMissing) { renderSetup(); return; }
   if (tab === "fixtures") renderFixtures();
   else if (tab === "leaderboard") renderLeaderboard();
-  else renderManage();
+  else if (tab === "manage") {
+    if (!manageUnlocked) renderPinGate();
+    else renderManage();
+  }
 }
 
 function renderSetup() {
@@ -374,7 +382,12 @@ function renderManage() {
       playable.map(backfillRowHTML).join("");
   }
 
-  screen.innerHTML = `<div class="big-title" style="font-size:22px">Manage</div>${tabs}${body}`;
+  screen.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+      <div class="big-title" style="font-size:22px;margin:0">Manage</div>
+      <button class="btn ghost sm" onclick="lockManage()">🔒 Lock</button>
+    </div>
+    ${tabs}${body}`;
 }
 
 function manageLabel(m) {
@@ -618,6 +631,38 @@ window.clearBackfill = async (matchId) => {
 
 window.setManageTab = (t) => { manageTab = t; render(); };
 window.setBackfillPlayer = (id) => { backfillPlayerId = id; render(); };
+
+window.unlockManage = () => {
+  const entered = document.getElementById("pin-input").value;
+  if (entered === MANAGE_PIN) {
+    manageUnlocked = true;
+    render();
+  } else {
+    document.getElementById("pin-error").textContent = "Wrong PIN — try again.";
+    document.getElementById("pin-input").value = "";
+  }
+};
+
+window.lockManage = () => {
+  manageUnlocked = false;
+  render();
+};
+
+function renderPinGate() {
+  document.getElementById("header-stage").textContent = "MANAGE";
+  screen.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:12px;text-align:center;padding:0 32px">
+      <div style="font-size:48px">🔐</div>
+      <div style="font-size:20px;font-weight:800">Manage</div>
+      <p style="color:var(--muted);font-size:14px;margin:0">Enter the PIN to enter results and manage the pool.</p>
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="6"
+        placeholder="PIN"
+        onkeydown="if(event.key==='Enter') unlockManage()"
+        style="width:140px;height:52px;text-align:center;font-size:28px;font-weight:800;letter-spacing:8px;border:2px solid var(--line);border-radius:14px;margin-top:8px">
+      <p id="pin-error" style="color:#dc2626;font-size:13px;font-weight:700;min-height:18px;margin:0"></p>
+      <button class="btn block" style="max-width:200px" onclick="unlockManage()">Unlock</button>
+    </div>`;
+}
 
 /* ---- bottom nav ---- */
 document.querySelectorAll(".nav-btn").forEach((btn) => {
