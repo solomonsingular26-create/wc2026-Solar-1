@@ -325,37 +325,12 @@ function renderLeaderboard() {
   const playable = matches.filter((m) => m.home_team !== "TBD" && m.away_team !== "TBD" && !isExcluded(m)).length;
   const medals = ["🥇", "🥈", "🥉"];
 
-  const hasKO = rows.some((r) => r.koPts > 0);
-
-  const colHeader = hasKO
-    ? `<div class="lb-col-header">
-        <span>GRP</span><span>KO</span><span>TOT</span>
-       </div>`
-    : "";
-
   const list =
     rows.length === 0
       ? `<p class="note">No players yet. Add yourself on the Fixtures tab.</p>`
       : rows
           .map((r, i) => {
             const leader = i === 0 && r.points > 0;
-            const pts = hasKO
-              ? `<div class="lb-pts-wrap">
-                  <div class="lb-pts-col">
-                    <div class="lb-pts-label">GRP</div>
-                    <div class="lb-pts-val">${r.groupPts}</div>
-                  </div>
-                  <div class="lb-pts-col">
-                    <div class="lb-pts-label">KO</div>
-                    <div class="lb-pts-val">${r.koPts}</div>
-                  </div>
-                  <div class="lb-pts-col">
-                    <div class="lb-pts-label">TOT</div>
-                    <div class="lb-pts-val ${leader ? "leader" : ""}">${r.points}</div>
-                  </div>
-                </div>`
-              : `<div class="lb-pts ${leader ? "leader" : ""}">${r.points}</div>`;
-
             return `<div class="card lb-row ${leader ? "leader" : ""}">
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="avatar" style="background:${avatarColor(r.name)}">${esc(initials(r.name))}</div>
@@ -363,7 +338,20 @@ function renderLeaderboard() {
                 <div class="n">${esc(r.name)}</div>
                 <div class="sub">${r.exact} exact · ${r.results} results</div>
               </div>
-              ${pts}
+              <div class="lb-pts-wrap">
+                <div class="lb-pts-col">
+                  <div class="lb-pts-label">GRP</div>
+                  <div class="lb-pts-val">${r.groupPts}</div>
+                </div>
+                <div class="lb-pts-col">
+                  <div class="lb-pts-label">KO</div>
+                  <div class="lb-pts-val">${r.koPts}</div>
+                </div>
+                <div class="lb-pts-col">
+                  <div class="lb-pts-label">TOT</div>
+                  <div class="lb-pts-val ${leader ? "leader" : ""}">${r.points}</div>
+                </div>
+              </div>
             </div>`;
           })
           .join("");
