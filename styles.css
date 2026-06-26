@@ -114,20 +114,31 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .btn.sm { padding: 7px 10px; }
 
 /* ---- leaderboard ---- */
-.lb-row { display: flex; align-items: center; gap: 12px; padding: 16px; }
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 14px; }
 .lb-row.leader { box-shadow: 0 0 0 2px var(--blue) inset; }
-.lb-rank { width: 26px; text-align: center; font-size: 20px; font-weight: 700; color: #94a3b8; }
+.lb-rank { width: 26px; text-align: center; font-size: 20px; font-weight: 700; color: #94a3b8; flex-shrink:0; }
 .avatar {
   width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 800; font-size: 15px; letter-spacing: .5px;
   box-shadow: 0 1px 2px rgba(0,0,0,.15);
 }
-.lb-name { flex: 1; }
-.lb-name .n { font-size: 18px; font-weight: 800; }
-.lb-name .sub { font-size: 13px; color: var(--muted); }
-.lb-pts { font-size: 28px; font-weight: 800; }
+.lb-name { flex: 1; min-width: 0; }
+.lb-name .n { font-size: 17px; font-weight: 800; }
+.lb-name .sub { font-size: 12px; color: var(--muted); }
+.lb-pts { font-size: 28px; font-weight: 800; flex-shrink:0; }
 .lb-pts.leader { color: var(--blue); }
+
+/* three-column pts (GRP / KO / TOT) */
+.lb-pts-wrap { display: flex; gap: 6px; flex-shrink: 0; }
+.lb-pts-col { display: flex; flex-direction: column; align-items: center; min-width: 38px; }
+.lb-pts-label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 1px; }
+.lb-pts-val { font-size: 20px; font-weight: 800; line-height: 1; }
+.lb-pts-val.leader { color: var(--blue); }
+
+/* divider between GRP/KO and TOT */
+.lb-pts-col:last-child { border-left: 1px solid var(--line); padding-left: 8px; margin-left: 2px; }
+.lb-pts-col:last-child .lb-pts-val { font-size: 24px; }
 
 /* frozen / not-counted games */
 .card.frozen { opacity: .5; }

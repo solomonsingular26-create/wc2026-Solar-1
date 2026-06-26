@@ -119,14 +119,17 @@ function slug(name) {
 
 async function seedIfEmpty() {
   const snap = await dbf.collection("matches").limit(1).get();
-  if (!snap.empty) return; // already seeded
+  if (!snap.empty) return; // matches exist — never touch them
+  // Only reaches here if the collection is truly empty (first ever run)
   const batch = dbf.batch();
   for (const f of FIXTURES) {
     const ref = dbf.collection("matches").doc(String(f.id));
-    batch.set(ref, { ...f, home_score: null, away_score: null, finished: false });
+    // set() with merge:true means it ONLY writes fields that don't exist yet.
+    // If a document already has home_score set, it will NOT be overwritten.
+    batch.set(ref, { ...f, home_score: null, away_score: null, finished: false }, { merge: true });
   }
   for (const name of PLAYERS) {
-    batch.set(dbf.collection("players").doc(slug(name)), { name });
+    batch.set(dbf.collection("players").doc(slug(name)), { name }, { merge: true });
   }
   await batch.commit();
 }
@@ -283,6 +286,8 @@ function renderFixtures() {
 /* ---------------------------------------------------------------------
    LEADERBOARD
    ------------------------------------------------------------------- */
+const KO_STAGES = new Set(["R32", "R16", "QF", "SF", "THIRD", "FINAL"]);
+
 function buildLeaderboard() {
   const finished = new Map(
     matches
@@ -290,7 +295,11 @@ function buildLeaderboard() {
       .map((m) => [m.id, m])
   );
   const rows = new Map();
-  for (const p of players) rows.set(p.id, { name: p.name, points: 0, exact: 0, results: 0, scored: 0 });
+  for (const p of players) rows.set(p.id, {
+    name: p.name,
+    groupPts: 0, koPts: 0, points: 0,
+    exact: 0, results: 0, scored: 0,
+  });
 
   for (const pr of predictions) {
     const m = finished.get(pr.match_id);
@@ -299,6 +308,8 @@ function buildLeaderboard() {
     row.scored++;
     const s = scorePrediction(pr.home_score, pr.away_score, m.home_score, m.away_score);
     row.points += s.pts;
+    if (KO_STAGES.has(m.stage)) row.koPts += s.pts;
+    else row.groupPts += s.pts;
     if (s.kind === "exact") row.exact++;
     else if (s.kind === "result") row.results++;
   }
@@ -314,12 +325,37 @@ function renderLeaderboard() {
   const playable = matches.filter((m) => m.home_team !== "TBD" && m.away_team !== "TBD" && !isExcluded(m)).length;
   const medals = ["🥇", "🥈", "🥉"];
 
+  const hasKO = rows.some((r) => r.koPts > 0);
+
+  const colHeader = hasKO
+    ? `<div class="lb-col-header">
+        <span>GRP</span><span>KO</span><span>TOT</span>
+       </div>`
+    : "";
+
   const list =
     rows.length === 0
       ? `<p class="note">No players yet. Add yourself on the Fixtures tab.</p>`
       : rows
           .map((r, i) => {
             const leader = i === 0 && r.points > 0;
+            const pts = hasKO
+              ? `<div class="lb-pts-wrap">
+                  <div class="lb-pts-col">
+                    <div class="lb-pts-label">GRP</div>
+                    <div class="lb-pts-val">${r.groupPts}</div>
+                  </div>
+                  <div class="lb-pts-col">
+                    <div class="lb-pts-label">KO</div>
+                    <div class="lb-pts-val">${r.koPts}</div>
+                  </div>
+                  <div class="lb-pts-col">
+                    <div class="lb-pts-label">TOT</div>
+                    <div class="lb-pts-val ${leader ? "leader" : ""}">${r.points}</div>
+                  </div>
+                </div>`
+              : `<div class="lb-pts ${leader ? "leader" : ""}">${r.points}</div>`;
+
             return `<div class="card lb-row ${leader ? "leader" : ""}">
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="avatar" style="background:${avatarColor(r.name)}">${esc(initials(r.name))}</div>
@@ -327,14 +363,13 @@ function renderLeaderboard() {
                 <div class="n">${esc(r.name)}</div>
                 <div class="sub">${r.exact} exact · ${r.results} results</div>
               </div>
-              <div class="lb-pts ${leader ? "leader" : ""}">${r.points}</div>
+              ${pts}
             </div>`;
           })
           .join("");
 
   screen.innerHTML = `
     <div class="big-title">Leaderboard</div>
-    <p class="note">${finished} of ${playable} matches scored · exact +${POINTS.EXACT} · result +${POINTS.RESULT} · miss ${POINTS.MISS}</p>
     ${list}`;
 }
 
