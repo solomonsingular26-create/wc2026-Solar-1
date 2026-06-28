@@ -30,6 +30,15 @@ function isExcluded(m) {
   return EXCLUDED_MATCH_IDS.includes(m.id);
 }
 
+/* ---- result locking ----
+   Results with no savedAt (entered before this feature) lock immediately.
+   New results lock 48 hours after being saved. */
+function isResultLocked(m) {
+  if (!m.finished) return false;
+  if (!m.savedAt) return true;
+  return (Date.now() - new Date(m.savedAt).getTime()) >= 48 * 60 * 60 * 1000;
+}
+
 /* ---- player avatars (coloured initials, generated from the name) ---- */
 const AVATAR_COLORS = [
   "#2563eb", "#7c3aed", "#db2777", "#ea580c", "#0891b2",
@@ -418,14 +427,20 @@ function manageLabel(m) {
 }
 
 function resultRowHTML(m) {
+  const locked = isResultLocked(m);
+  const scoreInputs = `
+      <input type="number" min="0" max="99" id="rh-${m.id}" value="${m.home_score ?? ""}" ${locked ? "disabled" : ""} style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">
+      <input type="number" min="0" max="99" id="ra-${m.id}" value="${m.away_score ?? ""}" ${locked ? "disabled" : ""} style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">`;
+  const actions = locked
+    ? `<span class="locked">locked 🔒</span>`
+    : `<button class="btn sm" onclick="setResult(${m.id})">${m.finished ? "Update" : "Set"}</button>
+       ${m.finished ? `<button class="btn ghost sm" onclick="clearResult(${m.id})">Clear</button>` : ""}`;
   return `<div class="card">
     <div class="row-label">${manageLabel(m)}${m.finished ? " · scored ✓" : ""}</div>
     <div class="row-mini">
       <div class="grow">${m.home_flag} ${esc(m.home_team)} <span class="muted">v</span> ${m.away_flag} ${esc(m.away_team)}</div>
-      <input type="number" min="0" max="99" id="rh-${m.id}" value="${m.home_score ?? ""}" style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">
-      <input type="number" min="0" max="99" id="ra-${m.id}" value="${m.away_score ?? ""}" style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">
-      <button class="btn sm" onclick="setResult(${m.id})">${m.finished ? "Update" : "Set"}</button>
-      ${m.finished ? `<button class="btn ghost sm" onclick="clearResult(${m.id})">Clear</button>` : ""}
+      ${scoreInputs}
+      ${actions}
     </div>
   </div>`;
 }
@@ -570,7 +585,7 @@ window.setResult = async (matchId) => {
   const h = num(`rh-${matchId}`), a = num(`ra-${matchId}`);
   if (h === null || a === null) { alert("Enter both scores (0–99)"); return; }
   try {
-    await dbf.collection("matches").doc(String(matchId)).update({ home_score: h, away_score: a, finished: true });
+    await dbf.collection("matches").doc(String(matchId)).update({ home_score: h, away_score: a, finished: true, savedAt: new Date().toISOString() });
     await refresh();
   } catch (e) { alert(e.message); }
 };
