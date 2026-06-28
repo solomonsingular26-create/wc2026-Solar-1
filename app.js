@@ -39,18 +39,17 @@ function isResultLocked(m) {
   return (Date.now() - new Date(m.savedAt).getTime()) >= 48 * 60 * 60 * 1000;
 }
 
-/* ---- player avatars (coloured initials, generated from the name) ---- */
-const AVATAR_COLORS = [
-  "#2563eb", "#7c3aed", "#db2777", "#ea580c", "#0891b2",
-  "#ca8a04", "#dc2626", "#4f46e5", "#0d9488", "#9333ea",
-];
-function avatarColor(name) {
-  let h = 0;
-  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-}
-function initials(name) {
-  return String(name).trim().slice(0, 2).toUpperCase();
+/* ---- player flags ---- */
+const PLAYER_FLAGS = {
+  "Solar": "🇺🇸",
+  "DKC":   "🇪🇹",
+  "Dere":  "🇪🇹",
+  "Ermo":  "🇸🇪",
+  "Costa": "🇪🇹",
+  "Mab":   "🇨🇳",
+};
+function playerFlag(name) {
+  return PLAYER_FLAGS[name] || "🏳️";
 }
 
 /* ---- connect to the database ---- */
@@ -342,7 +341,7 @@ function renderLeaderboard() {
             const leader = i === 0 && r.points > 0;
             return `<div class="card lb-row ${leader ? "leader" : ""}">
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
-              <div class="avatar" style="background:${avatarColor(r.name)}">${esc(initials(r.name))}</div>
+              <div class="flag-avatar">${playerFlag(r.name)}</div>
               <div class="lb-name">
                 <div class="n">${esc(r.name)}</div>
                 <div class="sub">${r.exact} exact · ${r.results} results</div>
