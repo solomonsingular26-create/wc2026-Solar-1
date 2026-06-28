@@ -366,6 +366,7 @@ function renderLeaderboard() {
           .join("");
 
   screen.innerHTML = `
+    <div class="dev-strip"><span>Developed by Solar</span><span>Powered by Fano</span></div>
     <div class="big-title">Leaderboard</div>
     ${list}`;
 }
