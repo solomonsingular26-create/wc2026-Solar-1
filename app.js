@@ -31,12 +31,9 @@ function isExcluded(m) {
 }
 
 /* ---- result locking ----
-   Results with no savedAt (entered before this feature) lock immediately.
-   New results lock 48 hours after being saved. */
+   A result locks the instant it's saved — no edits or clearing afterwards. */
 function isResultLocked(m) {
-  if (!m.finished) return false;
-  if (!m.savedAt) return true;
-  return (Date.now() - new Date(m.savedAt).getTime()) >= 48 * 60 * 60 * 1000;
+  return !!m.finished;
 }
 
 /* ---- player flags ---- */
@@ -69,6 +66,7 @@ let matches = [];      // all 104 fixtures
 let predictions = [];  // every prediction by everyone
 let tab = "fixtures";
 let manageTab = "results";
+let fixtureStage = localStorage.getItem("wc_fixture_stage") || "GROUP";
 let myId = localStorage.getItem("wc_player_id");
 let myName = localStorage.getItem("wc_player_name");
 
@@ -265,19 +263,43 @@ function matchRowHTML(m) {
   </div>`;
 }
 
+/* stage tabs shown at the top of the Fixtures screen */
+const STAGE_TABS = [
+  { key: "GROUP", label: "Groups" },
+  { key: "R32",   label: "R32" },
+  { key: "R16",   label: "R16" },
+  { key: "QF",    label: "QF" },
+  { key: "SF",    label: "SF" },
+  { key: "THIRD", label: "3rd" },
+  { key: "FINAL", label: "Final" },
+];
+
+window.setFixtureStage = (s) => {
+  fixtureStage = s;
+  localStorage.setItem("wc_fixture_stage", s);
+  render();
+  window.scrollTo(0, 0);
+};
+
+function stageTabsHTML() {
+  return `<div class="stage-tabs">` + STAGE_TABS
+    .map((t) => `<button class="stage-tab ${fixtureStage === t.key ? "active" : ""}" onclick="setFixtureStage('${t.key}')">${t.label}</button>`)
+    .join("") + `</div>`;
+}
+
 function renderFixtures() {
   document.getElementById("header-stage").textContent = "FIXTURES";
   const sections = [];
 
-  // group stage by matchday
-  for (const md of [1, 2, 3]) {
-    const sub = matches.filter((m) => m.stage === "GROUP" && m.matchday === md);
-    if (sub.length) sections.push({ title: `Group Stage · Matchday ${md}`, list: sub });
-  }
-  // knockout rounds
-  for (const stage of ["R32", "R16", "QF", "SF", "THIRD", "FINAL"]) {
-    const sub = matches.filter((m) => m.stage === stage);
-    if (sub.length) sections.push({ title: STAGE_TITLES[stage], list: sub });
+  if (fixtureStage === "GROUP") {
+    // group stage by matchday
+    for (const md of [1, 2, 3]) {
+      const sub = matches.filter((m) => m.stage === "GROUP" && m.matchday === md);
+      if (sub.length) sections.push({ title: `Group Stage · Matchday ${md}`, list: sub });
+    }
+  } else {
+    const sub = matches.filter((m) => m.stage === fixtureStage);
+    if (sub.length) sections.push({ title: STAGE_TITLES[fixtureStage], list: sub });
   }
 
   const body = sections
@@ -288,7 +310,7 @@ function renderFixtures() {
     )
     .join("");
 
-  screen.innerHTML = playerBarHTML() + body;
+  screen.innerHTML = playerBarHTML() + stageTabsHTML() + body;
 }
 
 /* ---------------------------------------------------------------------
@@ -365,7 +387,7 @@ function renderLeaderboard() {
           .join("");
 
   screen.innerHTML = `
-    <div class="dev-strip"><span>Developed by Solar</span><span>Powered by Fano</span></div>
+    <div class="dev-strip"><span>Developed by Solar</span><span>Trademark @2026 · V3.1</span></div>
     <div class="big-title">Leaderboard</div>
     ${list}`;
 }
@@ -394,7 +416,7 @@ function renderManage() {
 
   if (manageTab === "results") {
     body =
-      `<p class="note">Enter the final score of any game (including ones already played). Saving locks the game and updates the leaderboard.</p>` +
+      `<p class="note">Enter the final score of any game (including ones already played). Saving locks the result <b>instantly</b> — it can't be changed after — and updates the leaderboard.</p>` +
       playable.map(resultRowHTML).join("");
   } else if (manageTab === "deadlines") {
     body =
@@ -584,6 +606,8 @@ window.savePick = async (matchId) => {
 window.setResult = async (matchId) => {
   const h = num(`rh-${matchId}`), a = num(`ra-${matchId}`);
   if (h === null || a === null) { alert("Enter both scores (0–99)"); return; }
+  const m = matches.find((x) => x.id === matchId);
+  if (m && isResultLocked(m)) { await refresh(); return; } // already locked
   try {
     await dbf.collection("matches").doc(String(matchId)).update({ home_score: h, away_score: a, finished: true, savedAt: new Date().toISOString() });
     await refresh();

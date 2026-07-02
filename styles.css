@@ -92,6 +92,27 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .chip.dashed { border-style: dashed; color: var(--muted); }
 .link { color: var(--blue); font-weight: 700; font-size: 13px; text-decoration: underline; cursor: pointer; background: none; border: none; }
 
+/* ---- fixtures stage tabs ---- */
+.stage-tabs {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; gap: 6px;
+  background: var(--bg);
+  padding: 8px 0 10px;
+  margin: -4px 0 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.stage-tabs::-webkit-scrollbar { display: none; }
+.stage-tab {
+  flex-shrink: 0;
+  border: 1px solid var(--line); background: #fff; color: var(--muted);
+  border-radius: 999px; padding: 7px 14px;
+  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.stage-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
 /* ---- match row ---- */
 .match { display: flex; align-items: center; gap: 10px; }
 .teams { flex: 1; min-width: 0; }
