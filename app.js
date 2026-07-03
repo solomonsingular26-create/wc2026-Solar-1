@@ -30,18 +30,23 @@ function isExcluded(m) {
   return EXCLUDED_MATCH_IDS.includes(m.id);
 }
 
-/* ---- player avatars (coloured initials, generated from the name) ---- */
-const AVATAR_COLORS = [
-  "#2563eb", "#7c3aed", "#db2777", "#ea580c", "#0891b2",
-  "#ca8a04", "#dc2626", "#4f46e5", "#0d9488", "#9333ea",
-];
-function avatarColor(name) {
-  let h = 0;
-  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+/* ---- result locking ----
+   A result locks the instant it's saved — no edits or clearing afterwards. */
+function isResultLocked(m) {
+  return !!m.finished;
 }
-function initials(name) {
-  return String(name).trim().slice(0, 2).toUpperCase();
+
+/* ---- player flags ---- */
+const PLAYER_FLAGS = {
+  "Solar": "🇺🇸",
+  "DKC":   "🇪🇹",
+  "Dere":  "🇪🇹",
+  "Ermo":  "🇸🇪",
+  "Costa": "🇪🇹",
+  "Mab":   "🇨🇳",
+};
+function playerFlag(name) {
+  return PLAYER_FLAGS[name] || "🏳️";
 }
 
 /* ---- connect to the database ---- */
@@ -61,6 +66,7 @@ let matches = [];      // all 104 fixtures
 let predictions = [];  // every prediction by everyone
 let tab = "fixtures";
 let manageTab = "results";
+let fixtureStage = localStorage.getItem("wc_fixture_stage") || "GROUP";
 let myId = localStorage.getItem("wc_player_id");
 let myName = localStorage.getItem("wc_player_name");
 
@@ -257,19 +263,43 @@ function matchRowHTML(m) {
   </div>`;
 }
 
+/* stage tabs shown at the top of the Fixtures screen */
+const STAGE_TABS = [
+  { key: "GROUP", label: "Groups" },
+  { key: "R32",   label: "R32" },
+  { key: "R16",   label: "R16" },
+  { key: "QF",    label: "QF" },
+  { key: "SF",    label: "SF" },
+  { key: "THIRD", label: "3rd" },
+  { key: "FINAL", label: "Final" },
+];
+
+window.setFixtureStage = (s) => {
+  fixtureStage = s;
+  localStorage.setItem("wc_fixture_stage", s);
+  render();
+  window.scrollTo(0, 0);
+};
+
+function stageTabsHTML() {
+  return `<div class="stage-tabs">` + STAGE_TABS
+    .map((t) => `<button class="stage-tab ${fixtureStage === t.key ? "active" : ""}" onclick="setFixtureStage('${t.key}')">${t.label}</button>`)
+    .join("") + `</div>`;
+}
+
 function renderFixtures() {
   document.getElementById("header-stage").textContent = "FIXTURES";
   const sections = [];
 
-  // group stage by matchday
-  for (const md of [1, 2, 3]) {
-    const sub = matches.filter((m) => m.stage === "GROUP" && m.matchday === md);
-    if (sub.length) sections.push({ title: `Group Stage · Matchday ${md}`, list: sub });
-  }
-  // knockout rounds
-  for (const stage of ["R32", "R16", "QF", "SF", "THIRD", "FINAL"]) {
-    const sub = matches.filter((m) => m.stage === stage);
-    if (sub.length) sections.push({ title: STAGE_TITLES[stage], list: sub });
+  if (fixtureStage === "GROUP") {
+    // group stage by matchday
+    for (const md of [1, 2, 3]) {
+      const sub = matches.filter((m) => m.stage === "GROUP" && m.matchday === md);
+      if (sub.length) sections.push({ title: `Group Stage · Matchday ${md}`, list: sub });
+    }
+  } else {
+    const sub = matches.filter((m) => m.stage === fixtureStage);
+    if (sub.length) sections.push({ title: STAGE_TITLES[fixtureStage], list: sub });
   }
 
   const body = sections
@@ -280,7 +310,7 @@ function renderFixtures() {
     )
     .join("");
 
-  screen.innerHTML = playerBarHTML() + body;
+  screen.innerHTML = playerBarHTML() + stageTabsHTML() + body;
 }
 
 /* ---------------------------------------------------------------------
@@ -331,9 +361,13 @@ function renderLeaderboard() {
       : rows
           .map((r, i) => {
             const leader = i === 0 && r.points > 0;
-            return `<div class="card lb-row ${leader ? "leader" : ""}">
+            let subHeader = "";
+            if (i === 0) subHeader = `<div class="section-title">Top</div>`;
+            else if (i === 3) subHeader = `<div class="section-title">Mid Table</div>`;
+            else if (i === 5) subHeader = `<div class="section-title">Bottom</div>`;
+            return `${subHeader}<div class="card lb-row ${leader ? "leader" : ""}">
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
-              <div class="avatar" style="background:${avatarColor(r.name)}">${esc(initials(r.name))}</div>
+              <div class="flag-avatar">${playerFlag(r.name)}</div>
               <div class="lb-name">
                 <div class="n">${esc(r.name)}</div>
                 <div class="sub">${r.exact} exact · ${r.results} results</div>
@@ -357,6 +391,7 @@ function renderLeaderboard() {
           .join("");
 
   screen.innerHTML = `
+    <div class="dev-strip"><span>Developed by Solar</span><span>Trademark @2026 · V3.1</span></div>
     <div class="big-title">Leaderboard</div>
     ${list}`;
 }
@@ -385,7 +420,7 @@ function renderManage() {
 
   if (manageTab === "results") {
     body =
-      `<p class="note">Enter the final score of any game (including ones already played). Saving locks the game and updates the leaderboard.</p>` +
+      `<p class="note">Enter the final score of any game (including ones already played). Saving locks the result <b>instantly</b> — it can't be changed after — and updates the leaderboard.</p>` +
       playable.map(resultRowHTML).join("");
   } else if (manageTab === "deadlines") {
     body =
@@ -418,14 +453,20 @@ function manageLabel(m) {
 }
 
 function resultRowHTML(m) {
+  const locked = isResultLocked(m);
+  const scoreInputs = `
+      <input type="number" min="0" max="99" id="rh-${m.id}" value="${m.home_score ?? ""}" ${locked ? "disabled" : ""} style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">
+      <input type="number" min="0" max="99" id="ra-${m.id}" value="${m.away_score ?? ""}" ${locked ? "disabled" : ""} style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">`;
+  const actions = locked
+    ? `<span class="locked">locked 🔒</span>`
+    : `<button class="btn sm" onclick="setResult(${m.id})">${m.finished ? "Update" : "Set"}</button>
+       ${m.finished ? `<button class="btn ghost sm" onclick="clearResult(${m.id})">Clear</button>` : ""}`;
   return `<div class="card">
     <div class="row-label">${manageLabel(m)}${m.finished ? " · scored ✓" : ""}</div>
     <div class="row-mini">
       <div class="grow">${m.home_flag} ${esc(m.home_team)} <span class="muted">v</span> ${m.away_flag} ${esc(m.away_team)}</div>
-      <input type="number" min="0" max="99" id="rh-${m.id}" value="${m.home_score ?? ""}" style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">
-      <input type="number" min="0" max="99" id="ra-${m.id}" value="${m.away_score ?? ""}" style="width:42px;height:34px;text-align:center;border:1px solid var(--line);border-radius:8px;font-weight:700">
-      <button class="btn sm" onclick="setResult(${m.id})">${m.finished ? "Update" : "Set"}</button>
-      ${m.finished ? `<button class="btn ghost sm" onclick="clearResult(${m.id})">Clear</button>` : ""}
+      ${scoreInputs}
+      ${actions}
     </div>
   </div>`;
 }
@@ -569,8 +610,10 @@ window.savePick = async (matchId) => {
 window.setResult = async (matchId) => {
   const h = num(`rh-${matchId}`), a = num(`ra-${matchId}`);
   if (h === null || a === null) { alert("Enter both scores (0–99)"); return; }
+  const m = matches.find((x) => x.id === matchId);
+  if (m && isResultLocked(m)) { await refresh(); return; } // already locked
   try {
-    await dbf.collection("matches").doc(String(matchId)).update({ home_score: h, away_score: a, finished: true });
+    await dbf.collection("matches").doc(String(matchId)).update({ home_score: h, away_score: a, finished: true, savedAt: new Date().toISOString() });
     await refresh();
   } catch (e) { alert(e.message); }
 };
