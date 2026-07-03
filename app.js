@@ -348,13 +348,9 @@ function buildLeaderboard() {
   );
 }
 
-/* ---- fun-stats ticker ----
+/* ---- fun stats ----
    One cheeky line per player, picked at random from a pool that matches
-   where they sit in the table. The banner rotates through them. */
-let lbTickerTimer = null;
-let lbTickerLines = [];
-let lbTickerIdx = 0;
-
+   where they sit in the table. Shown inside each player's card. */
 function buildBanterLines(rows) {
   if (!rows.length) return [];
   const top = rows[0].points;
@@ -390,26 +386,13 @@ function buildBanterLines(rows) {
   });
 }
 
-function startLbTicker() {
-  if (lbTickerTimer) clearInterval(lbTickerTimer);
-  if (!lbTickerLines.length) return;
-  lbTickerTimer = setInterval(() => {
-    const el = document.getElementById("lb-ticker-text");
-    if (!el) { clearInterval(lbTickerTimer); lbTickerTimer = null; return; }
-    lbTickerIdx = (lbTickerIdx + 1) % lbTickerLines.length;
-    el.classList.remove("fade-in");
-    void el.offsetWidth; // restart the animation
-    el.textContent = lbTickerLines[lbTickerIdx];
-    el.classList.add("fade-in");
-  }, 4500);
-}
-
 function renderLeaderboard() {
   document.getElementById("header-stage").textContent = "LEADERBOARD";
   const rows = buildLeaderboard();
   const finished = matches.filter((m) => m.finished && !isExcluded(m)).length;
   const playable = matches.filter((m) => m.home_team !== "TBD" && m.away_team !== "TBD" && !isExcluded(m)).length;
   const medals = ["🥇", "🥈", "🥉"];
+  const banter = buildBanterLines(rows);
 
   const list =
     rows.length === 0
@@ -443,22 +426,15 @@ function renderLeaderboard() {
                   <div class="lb-pts-val ${leader ? "leader" : ""}">${r.points}</div>
                 </div>
               </div>
+              <div class="lb-banter">${banter[i]}</div>
             </div>`;
           })
           .join("");
 
-  lbTickerLines = buildBanterLines(rows);
-  lbTickerIdx = Math.floor(Math.random() * Math.max(lbTickerLines.length, 1));
-  const ticker = lbTickerLines.length
-    ? `<div class="lb-ticker"><span id="lb-ticker-text" class="fade-in">${lbTickerLines[lbTickerIdx]}</span></div>`
-    : "";
-
   screen.innerHTML = `
     <div class="dev-strip"><span>Developed by Solar</span><span>Trademark @2026 · V3.1</span></div>
     <div class="big-title">Leaderboard</div>
-    ${ticker}
     ${list}`;
-  startLbTicker();
 }
 
 /* ---------------------------------------------------------------------
