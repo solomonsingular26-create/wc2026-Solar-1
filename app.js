@@ -401,10 +401,10 @@ function renderLeaderboard() {
           .map((r, i) => {
             const leader = i === 0 && r.points > 0;
             let subHeader = "";
-            if (i === 0) subHeader = `<div class="section-title">👑 VIP / Pro</div>`;
-            else if (i === 1) subHeader = `<div class="section-title">Top</div>`;
-            else if (i === 3) subHeader = `<div class="section-title">Mid Table</div>`;
-            else if (i === 5) subHeader = `<div class="section-title">Bottom</div>`;
+            if (i === 0) subHeader = `<div class="section-title lb-sec">👑 VIP / Pro</div>`;
+            else if (i === 1) subHeader = `<div class="section-title lb-sec">Top</div>`;
+            else if (i === 3) subHeader = `<div class="section-title lb-sec">Mid Table</div>`;
+            else if (i === 5) subHeader = `<div class="section-title lb-sec">Bottom</div>`;
             return `${subHeader}<div class="card lb-row ${leader ? "leader" : ""}">
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="flag-avatar">${playerFlag(r.name)}</div>
@@ -433,7 +433,7 @@ function renderLeaderboard() {
 
   screen.innerHTML = `
     <div class="dev-strip"><span>Developed by Solar</span><span>Trademark @2026 · V3.1</span></div>
-    <div class="big-title">Leaderboard</div>
+    <div class="big-title" style="font-size:20px;margin:0 4px 4px">Leaderboard</div>
     ${list}`;
 }
 

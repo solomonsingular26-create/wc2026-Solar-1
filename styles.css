@@ -153,19 +153,23 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .btn.sm { padding: 7px 10px; }
 
 /* ---- leaderboard ---- */
-.lb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 9px 12px; margin-bottom: 8px; }
+.lb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; margin-bottom: 6px; }
 .lb-banter {
   flex-basis: 100%;
-  font-size: 11px;
+  font-size: 10.5px;
   font-style: italic;
   color: var(--muted);
-  line-height: 1.3;
-  margin-top: 2px;
-  padding-top: 5px;
+  line-height: 1.25;
+  margin-top: 0;
+  padding-top: 4px;
   border-top: 1px dashed var(--line);
 }
-.lb-row .flag-avatar { width: 36px; height: 36px; font-size: 22px; }
-.lb-row .lb-name .n { font-size: 16px; }
+.lb-row .flag-avatar { width: 30px; height: 30px; font-size: 19px; }
+.lb-row .lb-name .n { font-size: 15px; }
+.lb-row .lb-name .sub { font-size: 11px; }
+.lb-row .lb-rank { width: 22px; font-size: 16px; }
+/* leaderboard section headers — tighter than fixtures */
+.lb-sec { margin: 3px 4px 3px; }
 .lb-row.leader {
   box-shadow: 0 0 0 2px var(--gold) inset, 0 2px 12px rgba(217,119,6,.1);
   background: #fffbeb;
@@ -193,12 +197,12 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .lb-pts-wrap { display: flex; gap: 6px; flex-shrink: 0; }
 .lb-pts-col { display: flex; flex-direction: column; align-items: center; min-width: 38px; }
 .lb-pts-label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 1px; }
-.lb-pts-val { font-size: 20px; font-weight: 800; line-height: 1; }
+.lb-pts-val { font-size: 18px; font-weight: 800; line-height: 1; }
 .lb-pts-val.leader { color: var(--gold); }
 
 /* divider between GRP/KO and TOT */
 .lb-pts-col:last-child { border-left: 1px solid var(--line); padding-left: 8px; margin-left: 2px; }
-.lb-pts-col:last-child .lb-pts-val { font-size: 24px; }
+.lb-pts-col:last-child .lb-pts-val { font-size: 21px; }
 
 /* ---- dev strip (leaderboard) ---- */
 .dev-strip {
@@ -210,8 +214,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   text-transform: uppercase;
   display: flex;
   justify-content: space-between;
-  padding: 7px 16px;
-  margin: -16px -16px 14px;   /* bleed to screen edges */
+  padding: 5px 16px;
+  margin: -16px -16px 8px;   /* bleed to screen edges */
 }
 
 /* frozen / not-counted games */
