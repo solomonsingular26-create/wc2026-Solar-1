@@ -153,7 +153,24 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .btn.sm { padding: 7px 10px; }
 
 /* ---- leaderboard ---- */
-.lb-row { display: flex; align-items: center; gap: 10px; padding: 14px; }
+.lb-ticker {
+  background: linear-gradient(90deg, #1e3a8a, #1d4ed8);
+  color: #fff;
+  border-radius: 12px;
+  padding: 9px 14px;
+  margin: 8px 0 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  min-height: 18px;
+  box-shadow: 0 2px 8px rgba(29,78,216,.25);
+}
+.lb-ticker .fade-in { animation: lbFade .5s ease; display: inline-block; }
+@keyframes lbFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin-bottom: 8px; }
+.lb-row .flag-avatar { width: 36px; height: 36px; font-size: 22px; }
+.lb-row .lb-name .n { font-size: 16px; }
 .lb-row.leader {
   box-shadow: 0 0 0 2px var(--gold) inset, 0 2px 12px rgba(217,119,6,.1);
   background: #fffbeb;

@@ -348,6 +348,62 @@ function buildLeaderboard() {
   );
 }
 
+/* ---- fun-stats ticker ----
+   One cheeky line per player, picked at random from a pool that matches
+   where they sit in the table. The banner rotates through them. */
+let lbTickerTimer = null;
+let lbTickerLines = [];
+let lbTickerIdx = 0;
+
+function buildBanterLines(rows) {
+  if (!rows.length) return [];
+  const top = rows[0].points;
+  return rows.map((r, i) => {
+    const name = esc(r.name).toUpperCase();
+    const gap = top - r.points;
+    let pool;
+    if (i === 0) pool = [
+      `👑 ${name} has been sitting on the throne so long it has a cushion now`,
+      `👑 ${name} is running the show — ${r.points} pts and ${r.exact} exact hits`,
+      `👑 ${name} keeps the VIP seat warm... permanently`,
+      `👑 Breaking: scientists still can't explain how ${name} stays on top`,
+    ];
+    else if (i <= 2) pool = [
+      `🔥 ${name} is hunting the crown — only ${gap} pts off the top`,
+      `🔥 ${name} can smell first place from here (${gap} pts away)`,
+      `🔥 ${name} keeps the leader awake at night — ${gap} pts back`,
+      `🔥 ${name} with ${r.exact} exact picks and zero chill`,
+    ];
+    else if (i <= 4) pool = [
+      `😎 ${name} loves the mid table so much there's talk of a lease`,
+      `😎 ${name} calls mid table "a lifestyle, not a position"`,
+      `😎 ${name} is cruising mid table — comfortable... maybe too comfortable`,
+      `😎 ${name} is ${gap} pts off the top but vibes are immaculate`,
+    ];
+    else pool = [
+      `🪫 ${name} is holding up the entire table — someone has to`,
+      `🪫 ${name} says the comeback starts next matchday. Again.`,
+      `🪫 ${name} checked the leaderboard... then quietly closed the app`,
+      `🪫 ${name} is ${gap} pts behind but confidence remains undefeated`,
+    ];
+    return pool[Math.floor(Math.random() * pool.length)];
+  });
+}
+
+function startLbTicker() {
+  if (lbTickerTimer) clearInterval(lbTickerTimer);
+  if (!lbTickerLines.length) return;
+  lbTickerTimer = setInterval(() => {
+    const el = document.getElementById("lb-ticker-text");
+    if (!el) { clearInterval(lbTickerTimer); lbTickerTimer = null; return; }
+    lbTickerIdx = (lbTickerIdx + 1) % lbTickerLines.length;
+    el.classList.remove("fade-in");
+    void el.offsetWidth; // restart the animation
+    el.textContent = lbTickerLines[lbTickerIdx];
+    el.classList.add("fade-in");
+  }, 4500);
+}
+
 function renderLeaderboard() {
   document.getElementById("header-stage").textContent = "LEADERBOARD";
   const rows = buildLeaderboard();
@@ -362,7 +418,8 @@ function renderLeaderboard() {
           .map((r, i) => {
             const leader = i === 0 && r.points > 0;
             let subHeader = "";
-            if (i === 0) subHeader = `<div class="section-title">Top</div>`;
+            if (i === 0) subHeader = `<div class="section-title">👑 VIP / Pro</div>`;
+            else if (i === 1) subHeader = `<div class="section-title">Top</div>`;
             else if (i === 3) subHeader = `<div class="section-title">Mid Table</div>`;
             else if (i === 5) subHeader = `<div class="section-title">Bottom</div>`;
             return `${subHeader}<div class="card lb-row ${leader ? "leader" : ""}">
@@ -390,10 +447,18 @@ function renderLeaderboard() {
           })
           .join("");
 
+  lbTickerLines = buildBanterLines(rows);
+  lbTickerIdx = Math.floor(Math.random() * Math.max(lbTickerLines.length, 1));
+  const ticker = lbTickerLines.length
+    ? `<div class="lb-ticker"><span id="lb-ticker-text" class="fade-in">${lbTickerLines[lbTickerIdx]}</span></div>`
+    : "";
+
   screen.innerHTML = `
     <div class="dev-strip"><span>Developed by Solar</span><span>Trademark @2026 · V3.1</span></div>
     <div class="big-title">Leaderboard</div>
+    ${ticker}
     ${list}`;
+  startLbTicker();
 }
 
 /* ---------------------------------------------------------------------
