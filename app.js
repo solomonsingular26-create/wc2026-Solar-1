@@ -61,6 +61,42 @@ function playerFlag(name) {
   return PLAYER_FLAGS[name] || "🏳️";
 }
 
+/* ---- player PINs ----
+   Every player gets a private, random 4-digit PIN (stored on their player
+   doc in Firestore). Nobody can select a player — and therefore see that
+   player's predictions — without entering the right PIN. The admin can see
+   and regenerate every PIN in Manage → Players. */
+function randomPin() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+async function ensurePins() {
+  // Give a PIN to any player that doesn't have one yet (e.g. players
+  // created before PINs existed).
+  const missing = players.filter((p) => !p.pin);
+  if (missing.length === 0) return;
+  const batch = dbf.batch();
+  for (const p of missing) {
+    p.pin = randomPin();
+    batch.update(dbf.collection("players").doc(p.id), { pin: p.pin });
+  }
+  await batch.commit();
+}
+
+function validateSession() {
+  // If the saved sign-in no longer matches the player's current PIN
+  // (e.g. the admin regenerated it), sign this device out.
+  if (!myId) return;
+  const p = players.find((x) => x.id === myId);
+  const storedPin = localStorage.getItem("wc_player_pin");
+  if (!p || !p.pin || p.pin !== storedPin) {
+    myId = null; myName = null;
+    localStorage.removeItem("wc_player_id");
+    localStorage.removeItem("wc_player_name");
+    localStorage.removeItem("wc_player_pin");
+  }
+}
+
 /* ---- connect to the database ---- */
 const keysMissing =
   !firebaseConfig || !firebaseConfig.apiKey || firebaseConfig.apiKey.includes("YOUR_") ||
@@ -161,11 +197,13 @@ async function load() {
     dbf.collection("matches").get(),
     dbf.collection("predictions").get(),
   ]);
-  players = pSnap.docs.map((d) => ({ id: d.id, name: d.data().name }));
+  players = pSnap.docs.map((d) => ({ id: d.id, name: d.data().name, pin: d.data().pin || null }));
   players.sort((a, b) => a.name.localeCompare(b.name));
   matches = mSnap.docs.map((d) => d.data());
   matches.sort((a, b) => a.ordering - b.ordering);
   predictions = prSnap.docs.map((d) => d.data());
+  await ensurePins();
+  validateSession();
 }
 
 /* =====================================================================
@@ -197,6 +235,8 @@ function myPredFor(matchId) {
   return predictions.find((p) => p.player_id === myId && p.match_id === matchId);
 }
 
+let pinEntryFor = null; // player waiting for a PIN, e.g. {id, name}
+
 function playerBarHTML() {
   if (myId && myName) {
     return `<div class="card playerbar">
@@ -204,11 +244,24 @@ function playerBarHTML() {
       <button class="link" onclick="clearPlayer()">switch</button>
     </div>`;
   }
+  if (pinEntryFor) {
+    return `<div class="card">
+      <div style="font-weight:700;font-size:14px;margin-bottom:6px">🔐 Enter PIN for ${esc(pinEntryFor.name)}</div>
+      <div class="row-mini">
+        <input id="player-pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN"
+          onkeydown="if(event.key==='Enter') submitPlayerPin()"
+          style="width:120px;height:40px;text-align:center;font-size:20px;font-weight:800;letter-spacing:6px;border:2px solid var(--line);border-radius:10px">
+        <button class="btn sm" onclick="submitPlayerPin()">Unlock</button>
+        <button class="btn ghost sm" onclick="cancelPinEntry()">Cancel</button>
+      </div>
+      <p id="player-pin-error" style="color:#dc2626;font-size:12px;font-weight:700;min-height:16px;margin:4px 0 0"></p>
+    </div>`;
+  }
   const chips = players
-    .map((p) => `<button class="chip" onclick="selectPlayer('${p.id}','${esc(p.name)}')">${esc(p.name)}</button>`)
+    .map((p) => `<button class="chip" onclick="startPinEntry('${p.id}')">${esc(p.name)}</button>`)
     .join("");
   return `<div class="card">
-    <div style="font-weight:700;font-size:14px;margin-bottom:2px">Who are you?</div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:2px">Who are you? <span style="font-weight:400;color:var(--muted)">(PIN required)</span></div>
     <div class="chips">${chips}
       <button class="chip dashed" onclick="addPlayer()">+ new</button>
     </div>
@@ -426,6 +479,7 @@ function renderManage() {
       <button class="tab ${manageTab === "deadlines" ? "active" : ""}" onclick="setManageTab('deadlines')">Deadlines</button>
       <button class="tab ${manageTab === "knockout" ? "active" : ""}" onclick="setManageTab('knockout')">Knockout</button>
       <button class="tab ${manageTab === "backfill" ? "active" : ""}" onclick="setManageTab('backfill')">Predictions</button>
+      <button class="tab ${manageTab === "players" ? "active" : ""}" onclick="setManageTab('players')">Players</button>
     </div>`;
 
   let body = "";
@@ -444,6 +498,16 @@ function renderManage() {
     body =
       `<p class="note">As the bracket fills, type the two teams for each knockout game (emoji flag optional). Predictions open once both teams are set.</p>` +
       knockout.map(koRowHTML).join("");
+  } else if (manageTab === "players") {
+    body =
+      `<p class="note">Each player's private 4-digit PIN. Share each code with its player only — they need it to sign in and see their own predictions. <b>New PIN</b> replaces the code and signs that player out everywhere.</p>` +
+      players.map((p) => `<div class="card">
+        <div class="row-mini">
+          <div class="grow" style="font-size:14px;font-weight:600">${playerFlag(p.name)} ${esc(p.name)}</div>
+          <span style="font-weight:800;letter-spacing:4px;font-size:17px">${esc(p.pin || "—")}</span>
+          <button class="btn ghost sm" onclick="regenPin('${p.id}')">New PIN</button>
+        </div>
+      </div>`).join("");
   } else {
     const opts = players
       .map((p) => `<option value="${p.id}" ${p.id === backfillPlayerId ? "selected" : ""}>${esc(p.name)}</option>`)
@@ -575,17 +639,45 @@ function num(id) {
 
 async function refresh() { await load(); render(); }
 
-window.selectPlayer = (id, name) => {
-  myId = id; myName = name;
-  localStorage.setItem("wc_player_id", id);
-  localStorage.setItem("wc_player_name", name);
+function signIn(p) {
+  myId = p.id; myName = p.name;
+  localStorage.setItem("wc_player_id", p.id);
+  localStorage.setItem("wc_player_name", p.name);
+  localStorage.setItem("wc_player_pin", p.pin);
+  pinEntryFor = null;
   render();
+}
+
+window.startPinEntry = (id) => {
+  const p = players.find((x) => x.id === id);
+  if (!p) return;
+  pinEntryFor = { id: p.id, name: p.name };
+  render();
+  setTimeout(() => document.getElementById("player-pin")?.focus(), 0);
+};
+
+window.cancelPinEntry = () => {
+  pinEntryFor = null;
+  render();
+};
+
+window.submitPlayerPin = () => {
+  const entered = document.getElementById("player-pin").value.trim();
+  const p = pinEntryFor && players.find((x) => x.id === pinEntryFor.id);
+  if (p && p.pin && entered === p.pin) {
+    signIn(p);
+  } else {
+    document.getElementById("player-pin-error").textContent = "Wrong PIN — ask the admin for your code.";
+    document.getElementById("player-pin").value = "";
+    document.getElementById("player-pin")?.focus();
+  }
 };
 
 window.clearPlayer = () => {
   myId = null; myName = null;
   localStorage.removeItem("wc_player_id");
   localStorage.removeItem("wc_player_name");
+  localStorage.removeItem("wc_player_pin");
   render();
 };
 
@@ -598,9 +690,11 @@ window.addPlayer = async () => {
     const ref = dbf.collection("players").doc(id);
     const snap = await ref.get();
     if (snap.exists) { alert("That name is taken."); return; }
-    await ref.set({ name: clean });
+    const pin = randomPin();
+    await ref.set({ name: clean, pin });
+    alert(`Your PIN is ${pin} — save it somewhere! You'll need it to sign in on any device.`);
     await load();
-    selectPlayer(id, clean);
+    signIn({ id, name: clean, pin });
   } catch (e) { alert(e.message); }
 };
 
@@ -705,6 +799,15 @@ window.saveBackfill = async (matchId) => {
 window.clearBackfill = async (matchId) => {
   try {
     await dbf.collection("predictions").doc(`${backfillPlayerId}_${matchId}`).delete();
+    await refresh();
+  } catch (e) { alert(e.message); }
+};
+
+window.regenPin = async (playerId) => {
+  const p = players.find((x) => x.id === playerId);
+  if (!confirm(`Generate a new PIN for ${p ? p.name : "this player"}? The old code stops working immediately.`)) return;
+  try {
+    await dbf.collection("players").doc(playerId).update({ pin: randomPin() });
     await refresh();
   } catch (e) { alert(e.message); }
 };
