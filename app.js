@@ -387,8 +387,8 @@ function renderLeaderboard() {
               <div class="flag-avatar">${playerFlag(r.name)}</div>
               <div class="lb-name">
                 <div class="n">${esc(r.name)}</div>
-                <div class="sub">${r.exact} exact · ${r.results} results</div>
               </div>
+              <div class="lb-sub-right">${r.exact} exact · ${r.results} results</div>
               <div class="lb-pts-wrap">
                 <div class="lb-pts-col">
                   <div class="lb-pts-label">TOT</div>
