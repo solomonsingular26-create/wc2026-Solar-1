@@ -13,8 +13,20 @@ const FIXTURES = [{"id":1,"stage":"GROUP","group_name":"A","matchday":1,"orderin
    same leaderboard. No build step — just files a browser opens.
    ===================================================================== */
 
-/* ---- scoring rules (change these if you want) ---- */
-const POINTS = { EXACT: 20, RESULT: 15, MISS: 0 };
+/* ---- scoring rules (change these if you want) ----
+   Points step up in the late rounds:
+   - Group / R32 / R16 : exact 20, result 15
+   - QF / SF / 3rd     : exact 40, result 20
+   - Final             : exact 50, result 30 */
+const STAGE_POINTS = {
+  GROUP: { EXACT: 20, RESULT: 15 },
+  R32:   { EXACT: 20, RESULT: 15 },
+  R16:   { EXACT: 20, RESULT: 15 },
+  QF:    { EXACT: 40, RESULT: 20 },
+  SF:    { EXACT: 40, RESULT: 20 },
+  THIRD: { EXACT: 40, RESULT: 20 },
+  FINAL: { EXACT: 50, RESULT: 30 },
+};
 
 /* ---- manage PIN ----
    Change the number below to update the PIN. */
@@ -75,10 +87,11 @@ const screen = document.getElementById("screen");
 /* ---- small helpers ---- */
 const sign = (h, a) => (h > a ? 1 : h < a ? -1 : 0);
 
-function scorePrediction(ph, pa, ah, aa) {
-  if (ph === ah && pa === aa) return { pts: POINTS.EXACT, kind: "exact" };
-  if (sign(ph, pa) === sign(ah, aa)) return { pts: POINTS.RESULT, kind: "result" };
-  return { pts: POINTS.MISS, kind: "miss" };
+function scorePrediction(ph, pa, ah, aa, stage) {
+  const pts = STAGE_POINTS[stage] || STAGE_POINTS.GROUP;
+  if (ph === ah && pa === aa) return { pts: pts.EXACT, kind: "exact" };
+  if (sign(ph, pa) === sign(ah, aa)) return { pts: pts.RESULT, kind: "result" };
+  return { pts: 0, kind: "miss" };
 }
 
 function esc(s) {
@@ -222,7 +235,7 @@ function matchRowHTML(m) {
   if (frozen) {
     foot = `<span class="locked">frozen · not counted</span>`;
   } else if (m.finished && mine) {
-    const s = scorePrediction(mine.home_score, mine.away_score, m.home_score, m.away_score);
+    const s = scorePrediction(mine.home_score, mine.away_score, m.home_score, m.away_score, m.stage);
     const cls = s.kind === "exact" ? "pts-exact" : s.kind === "result" ? "pts-result" : "pts-miss";
     const label = s.kind === "exact" ? "Exact" : s.kind === "result" ? "Result" : "Miss";
     foot = `<span class="${cls}">${label} +${s.pts}</span>`;
@@ -288,7 +301,6 @@ function stageTabsHTML() {
 }
 
 function renderFixtures() {
-  document.getElementById("header-stage").textContent = "FIXTURES";
   const sections = [];
 
   if (fixtureStage === "GROUP") {
@@ -316,7 +328,7 @@ function renderFixtures() {
 /* ---------------------------------------------------------------------
    LEADERBOARD
    ------------------------------------------------------------------- */
-const KO_STAGES = new Set(["R32", "R16", "QF", "SF", "THIRD", "FINAL"]);
+const LB_STAGES = ["GROUP", "R32", "R16", "QF", "SF", "THIRD", "FINAL"];
 
 function buildLeaderboard() {
   const finished = new Map(
@@ -327,7 +339,8 @@ function buildLeaderboard() {
   const rows = new Map();
   for (const p of players) rows.set(p.id, {
     name: p.name,
-    groupPts: 0, koPts: 0, points: 0,
+    stagePts: Object.fromEntries(LB_STAGES.map((s) => [s, 0])),
+    points: 0,
     exact: 0, results: 0, scored: 0,
   });
 
@@ -336,10 +349,9 @@ function buildLeaderboard() {
     const row = rows.get(pr.player_id);
     if (!m || !row) continue;
     row.scored++;
-    const s = scorePrediction(pr.home_score, pr.away_score, m.home_score, m.away_score);
+    const s = scorePrediction(pr.home_score, pr.away_score, m.home_score, m.away_score, m.stage);
     row.points += s.pts;
-    if (KO_STAGES.has(m.stage)) row.koPts += s.pts;
-    else row.groupPts += s.pts;
+    row.stagePts[m.stage] += s.pts;
     if (s.kind === "exact") row.exact++;
     else if (s.kind === "result") row.results++;
   }
@@ -348,51 +360,16 @@ function buildLeaderboard() {
   );
 }
 
-/* ---- fun stats ----
-   One cheeky line per player, picked at random from a pool that matches
-   where they sit in the table. Shown inside each player's card. */
-function buildBanterLines(rows) {
-  if (!rows.length) return [];
-  const top = rows[0].points;
-  return rows.map((r, i) => {
-    const name = esc(r.name).toUpperCase();
-    const gap = top - r.points;
-    let pool;
-    if (i === 0) pool = [
-      `👑 ${name} has been sitting on the throne so long it has a cushion now`,
-      `👑 ${name} is running the show — ${r.points} pts and ${r.exact} exact hits`,
-      `👑 ${name} keeps the VIP seat warm... permanently`,
-      `👑 Breaking: scientists still can't explain how ${name} stays on top`,
-    ];
-    else if (i <= 2) pool = [
-      `🔥 ${name} is hunting the crown — only ${gap} pts off the top`,
-      `🔥 ${name} can smell first place from here (${gap} pts away)`,
-      `🔥 ${name} keeps the leader awake at night — ${gap} pts back`,
-      `🔥 ${name} with ${r.exact} exact picks and zero chill`,
-    ];
-    else if (i <= 4) pool = [
-      `😎 ${name} loves the mid table so much there's talk of a lease`,
-      `😎 ${name} calls mid table "a lifestyle, not a position"`,
-      `😎 ${name} is cruising mid table — comfortable... maybe too comfortable`,
-      `😎 ${name} is ${gap} pts off the top but vibes are immaculate`,
-    ];
-    else pool = [
-      `🪫 ${name} is holding up the entire table — someone has to`,
-      `🪫 ${name} says the comeback starts next matchday. Again.`,
-      `🪫 ${name} checked the leaderboard... then quietly closed the app`,
-      `🪫 ${name} is ${gap} pts behind but confidence remains undefeated`,
-    ];
-    return pool[Math.floor(Math.random() * pool.length)];
-  });
-}
+/* labels for the per-stage points breakout — mirrors the fixture tabs */
+const LB_STAGE_LABELS = {
+  GROUP: "Groups", R32: "R32", R16: "R16", QF: "QF", SF: "SF", THIRD: "3rd", FINAL: "Final",
+};
 
 function renderLeaderboard() {
-  document.getElementById("header-stage").textContent = "LEADERBOARD";
   const rows = buildLeaderboard();
   const finished = matches.filter((m) => m.finished && !isExcluded(m)).length;
   const playable = matches.filter((m) => m.home_team !== "TBD" && m.away_team !== "TBD" && !isExcluded(m)).length;
   const medals = ["🥇", "🥈", "🥉"];
-  const banter = buildBanterLines(rows);
 
   const list =
     rows.length === 0
@@ -414,19 +391,16 @@ function renderLeaderboard() {
               </div>
               <div class="lb-pts-wrap">
                 <div class="lb-pts-col">
-                  <div class="lb-pts-label">GRP</div>
-                  <div class="lb-pts-val">${r.groupPts}</div>
-                </div>
-                <div class="lb-pts-col">
-                  <div class="lb-pts-label">KO</div>
-                  <div class="lb-pts-val">${r.koPts}</div>
-                </div>
-                <div class="lb-pts-col">
                   <div class="lb-pts-label">TOT</div>
                   <div class="lb-pts-val ${leader ? "leader" : ""}">${r.points}</div>
                 </div>
               </div>
-              <div class="lb-banter">${banter[i]}</div>
+              <div class="lb-breakdown">${LB_STAGES.map((st) => `
+                <div class="lb-bd-col">
+                  <div class="lb-bd-label">${LB_STAGE_LABELS[st]}</div>
+                  <div class="lb-bd-val">${r.stagePts[st]}</div>
+                </div>`).join("")}
+              </div>
             </div>`;
           })
           .join("");
@@ -444,7 +418,6 @@ function renderLeaderboard() {
 let backfillPlayerId = null;
 
 function renderManage() {
-  document.getElementById("header-stage").textContent = "MANAGE";
   if (!backfillPlayerId && players[0]) backfillPlayerId = players[0].id;
 
   const tabs = `
@@ -756,7 +729,6 @@ window.lockManage = () => {
 };
 
 function renderPinGate() {
-  document.getElementById("header-stage").textContent = "MANAGE";
   screen.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:12px;text-align:center;padding:0 32px">
       <div style="font-size:48px">🔐</div>

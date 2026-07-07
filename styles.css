@@ -48,16 +48,12 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   padding: 12px 20px 10px;
   box-shadow: 0 2px 12px rgba(37, 99, 235, 0.25);
 }
-.header-top {
-  font-size: 10px; letter-spacing: 2px; font-weight: 700;
-  opacity: .75; text-transform: uppercase;
-}
 .header-row {
   display: flex; align-items: center;
-  justify-content: space-between; margin-top: 3px;
 }
-.header h1 { font-size: 19px; margin: 0; font-weight: 800; letter-spacing: -.3px; }
-.ball { font-size: 24px; }
+.header-flags { flex: 1; font-size: 24px; text-align: left; }
+.header h1 { font-size: 19px; margin: 0; font-weight: 800; letter-spacing: -.3px; text-align: center; }
+.ball { flex: 1; font-size: 24px; text-align: right; }
 
 /* ---- screens ---- */
 .screen { flex: 1; padding: 16px; padding-bottom: 90px; }
@@ -154,16 +150,17 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ---- leaderboard ---- */
 .lb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; margin-bottom: 6px; }
-.lb-banter {
+/* per-stage points breakout (Groups / R32 / R16 / QF / SF / 3rd / Final) */
+.lb-breakdown {
   flex-basis: 100%;
-  font-size: 10.5px;
-  font-style: italic;
-  color: var(--muted);
-  line-height: 1.25;
-  margin-top: 0;
-  padding-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 5px;
   border-top: 1px dashed var(--line);
 }
+.lb-bd-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.lb-bd-label { font-size: 8.5px; font-weight: 800; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; }
+.lb-bd-val { font-size: 13px; font-weight: 800; line-height: 1.2; }
 .lb-row .flag-avatar { width: 30px; height: 30px; font-size: 19px; }
 .lb-row .lb-name .n { font-size: 15px; }
 .lb-row .lb-name .sub { font-size: 11px; }
@@ -193,16 +190,12 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .lb-pts { font-size: 28px; font-weight: 800; flex-shrink:0; }
 .lb-pts.leader { color: var(--gold); }
 
-/* three-column pts (GRP / KO / TOT) */
+/* total points column */
 .lb-pts-wrap { display: flex; gap: 6px; flex-shrink: 0; }
 .lb-pts-col { display: flex; flex-direction: column; align-items: center; min-width: 38px; }
 .lb-pts-label { font-size: 9px; font-weight: 800; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 1px; }
-.lb-pts-val { font-size: 18px; font-weight: 800; line-height: 1; }
+.lb-pts-val { font-size: 21px; font-weight: 800; line-height: 1; }
 .lb-pts-val.leader { color: var(--gold); }
-
-/* divider between GRP/KO and TOT */
-.lb-pts-col:last-child { border-left: 1px solid var(--line); padding-left: 8px; margin-left: 2px; }
-.lb-pts-col:last-child .lb-pts-val { font-size: 21px; }
 
 /* ---- dev strip (leaderboard) ---- */
 .dev-strip {
