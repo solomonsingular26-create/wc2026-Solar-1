@@ -173,14 +173,21 @@ function slug(name) {
 }
 
 async function seedIfEmpty() {
-  const snap = await dbf.collection("matches").limit(1).get();
+  // SAFETY: ask the SERVER directly. Never trust a cached/offline answer —
+  // an empty local cache once made this function think the database was
+  // empty and re-seed blank fixtures over real results (July 7 incident).
+  let snap;
+  try {
+    snap = await dbf.collection("matches").limit(1).get({ source: "server" });
+  } catch (e) {
+    return; // can't reach the server — do NOT assume empty, never seed
+  }
+  if (snap.metadata && snap.metadata.fromCache) return; // extra guard
   if (!snap.empty) return; // matches exist — never touch them
-  // Only reaches here if the collection is truly empty (first ever run)
+  // Only reaches here if the server confirms the collection is truly empty
   const batch = dbf.batch();
   for (const f of FIXTURES) {
     const ref = dbf.collection("matches").doc(String(f.id));
-    // set() with merge:true means it ONLY writes fields that don't exist yet.
-    // If a document already has home_score set, it will NOT be overwritten.
     batch.set(ref, { ...f, home_score: null, away_score: null, finished: false }, { merge: true });
   }
   for (const name of PLAYERS) {
