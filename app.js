@@ -198,6 +198,8 @@ async function load() {
    ===================================================================== */
 function render() {
   if (keysMissing) { renderSetup(); return; }
+  /* space background only on the leaderboard tab */
+  screen.classList.toggle("space", tab === "leaderboard");
   if (tab === "fixtures") renderFixtures();
   else if (tab === "leaderboard") renderLeaderboard();
   else if (tab === "manage") {
@@ -426,7 +428,7 @@ function renderLeaderboard() {
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="flag-avatar">${playerFlag(r.name)}</div>
               <div class="lb-name">
-                <span class="n">${esc(r.name)}</span>
+                <span class="n${leader ? " crowned" : ""}">${leader ? `<span class="crown">👑</span>` : ""}${esc(r.name)}</span>
                 <span class="lb-sub-right">${r.exact} exact · ${r.results} results</span>
               </div>
               <div class="lb-pts-wrap">
