@@ -423,7 +423,7 @@ function renderLeaderboard() {
             if (i === 0) subHeader = `<div class="section-title lb-sec">👑 VIP / Pro</div>`;
             else if (i === 1) subHeader = `<div class="section-title lb-sec">Top</div>`;
             else if (i === 3) subHeader = `<div class="section-title lb-sec">Mid Table</div>`;
-            else if (i === 5) subHeader = `<div class="section-title lb-sec">Bottom</div>`;
+            else if (i === 5) subHeader = `<div class="section-title lb-sec">QIX</div>`;
             return `${subHeader}<div class="card lb-row ${leader ? "leader" : ""}">
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="flag-avatar">${playerFlag(r.name)}</div>
