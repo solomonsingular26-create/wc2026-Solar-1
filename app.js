@@ -61,6 +61,20 @@ function playerFlag(name) {
   return PLAYER_FLAGS[name] || "🏳️";
 }
 
+/* ---- Amharic nicknames, shown in parentheses after each name ---- */
+const PLAYER_AMHARIC = {
+  "Solar": "ሶል",
+  "DKC":   "ደምስ",
+  "Dere":  "ደሬ",
+  "Ermo":  "ኤርሚ",
+  "Costa": "ዮን",
+  "Mab":   "ማብ",
+};
+function displayName(name) {
+  const am = PLAYER_AMHARIC[name];
+  return am ? `${name} (${am})` : name;
+}
+
 /* ---- player PINs ----
    Every player gets a private, random 4-digit PIN (stored on their player
    doc in Firestore). Nobody can select a player — and therefore see that
@@ -439,7 +453,7 @@ function renderLeaderboard() {
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="flag-avatar">${playerFlag(r.name)}</div>
               <div class="lb-name">
-                <span class="n${leader ? " crowned" : ""}">${leader ? `<span class="crown">👑</span>` : ""}${esc(r.name)}</span>
+                <span class="n${leader ? " crowned" : ""}">${leader ? `<span class="crown">👑</span>` : ""}${esc(displayName(r.name))}</span>
                 <span class="lb-sub-right">${r.exact} exact · ${r.results} results</span>
               </div>
               <div class="lb-pts-wrap">
