@@ -380,3 +380,107 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   0%, 100% { transform: translateX(-50%) rotate(-14deg) translateY(0); }
   50%       { transform: translateX(-50%) rotate(-14deg) translateY(-2px); }
 }
+
+/* =================================================================
+   WINNER-ROW PARTY — fireworks, balloons & confetti live inside the
+   leader row (overflow:hidden clips them; pointer-events:none so the
+   row stays tappable)
+   ================================================================= */
+.celebrate {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 0;                 /* behind the row content */
+}
+.lb-row.leader > *:not(.celebrate) { position: relative; z-index: 1; }
+
+/* fireworks — tiny dots that pop into a burst ring and fade */
+.fw {
+  position: absolute;
+  width: 6px; height: 6px; border-radius: 50%;
+  opacity: 0;
+  animation: fw-pop 2.4s ease-out infinite;
+}
+.fw1 { left: 12%; top: 30%; background: #f59e0b;
+       box-shadow: 0 0 6px 2px rgba(245,158,11,.9); }
+.fw2 { left: 82%; top: 22%; background: #ef4444;
+       box-shadow: 0 0 6px 2px rgba(239,68,68,.9); animation-delay: .7s; }
+.fw3 { left: 58%; top: 65%; background: #3b82f6;
+       box-shadow: 0 0 6px 2px rgba(59,130,246,.9); animation-delay: 1.3s; }
+.fw4 { left: 30%; top: 70%; background: #22c55e;
+       box-shadow: 0 0 6px 2px rgba(34,197,94,.9); animation-delay: 1.9s; }
+@keyframes fw-pop {
+  0%   { transform: scale(.2); opacity: 0; }
+  8%   { opacity: 1; }
+  35%  { transform: scale(3.2); opacity: .9;
+         box-shadow: 0 0 2px 10px rgba(255,255,255,0); }
+  60%, 100% { transform: scale(4); opacity: 0; }
+}
+
+/* balloons — drift up across the row on a loop */
+.balloon {
+  position: absolute; bottom: -22px;
+  font-size: 15px; line-height: 1;
+  opacity: 0;
+  animation: balloon-rise 4.5s linear infinite;
+}
+.b1 { left: 8%; }
+.b2 { left: 50%; animation-delay: 1.6s; font-size: 12px; }
+.b3 { left: 87%; animation-delay: 3s; }
+@keyframes balloon-rise {
+  0%   { transform: translateY(0) rotate(-4deg); opacity: 0; }
+  12%  { opacity: .95; }
+  50%  { transform: translateY(-42px) rotate(5deg); }
+  88%  { opacity: .9; }
+  100% { transform: translateY(-84px) rotate(-4deg); opacity: 0; }
+}
+
+/* confetti bits — gentle float + spin in the corners */
+.confetti {
+  position: absolute;
+  font-size: 13px; line-height: 1;
+  animation: confetti-sway 3s ease-in-out infinite;
+}
+.c1 { left: 3%;  top: 8%; }
+.c2 { left: 70%; top: 10%; animation-delay: 1s; }
+.c3 { right: 3%; bottom: 12%; animation-delay: 2s; }
+@keyframes confetti-sway {
+  0%, 100% { transform: translateY(0) rotate(-12deg); opacity: .85; }
+  50%      { transform: translateY(-4px) rotate(14deg); opacity: 1; }
+}
+
+/* =================================================================
+   BOTTOM-ROW TROLL — dark gray card of shame + big clown watching
+   ================================================================= */
+.lb-row.loser {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #374151 0%, #4b5563 55%, #374151 100%);
+  box-shadow: 0 1px 4px rgba(0,0,0,.25) inset, 0 2px 8px rgba(15,23,42,.2);
+}
+/* readable text on the dark card */
+.lb-row.loser .lb-name .n,
+.lb-row.loser .lb-pts-val,
+.lb-row.loser .lb-bd-val { color: #e5e7eb; }
+.lb-row.loser .lb-sub-right,
+.lb-row.loser .lb-pts-label,
+.lb-row.loser .lb-bd-label { color: #9ca3af; }
+.lb-row.loser .lb-rank { color: #9ca3af; }
+.lb-row.loser .lb-breakdown { border-top-color: #6b7280; }
+.lb-row.loser > *:not(.troll-emoji) { position: relative; z-index: 1; }
+
+/* the big ass clown — looms behind the stats, slowly wobbling */
+.troll-emoji {
+  position: absolute;
+  right: 2px; top: 50%;
+  font-size: 74px; line-height: 1;
+  transform: translateY(-50%) rotate(12deg);
+  opacity: .34;
+  pointer-events: none;
+  z-index: 0;
+  filter: saturate(1.3);
+  animation: troll-wobble 3.4s ease-in-out infinite;
+}
+@keyframes troll-wobble {
+  0%, 100% { transform: translateY(-50%) rotate(9deg)  scale(1); }
+  50%      { transform: translateY(-52%) rotate(16deg) scale(1.07); }
+}

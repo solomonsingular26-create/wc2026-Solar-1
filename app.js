@@ -419,12 +419,23 @@ function renderLeaderboard() {
       : rows
           .map((r, i) => {
             const leader = i === 0 && r.points > 0;
+            const loser = i === rows.length - 1 && rows.length > 1;
             let subHeader = "";
             if (i === 0) subHeader = `<div class="section-title lb-sec">👑 VIP / Pro</div>`;
             else if (i === 1) subHeader = `<div class="section-title lb-sec">Top</div>`;
             else if (i === 3) subHeader = `<div class="section-title lb-sec">Mid Table</div>`;
             else if (i === 5) subHeader = `<div class="section-title lb-sec">QIX</div>`;
-            return `${subHeader}<div class="card lb-row ${leader ? "leader" : ""}">
+            /* winner row party: fireworks bursts + rising balloons + confetti */
+            const celebrate = leader ? `
+              <div class="celebrate" aria-hidden="true">
+                <span class="fw fw1"></span><span class="fw fw2"></span><span class="fw fw3"></span><span class="fw fw4"></span>
+                <span class="balloon b1">🎈</span><span class="balloon b2">🎈</span><span class="balloon b3">🎈</span>
+                <span class="confetti c1">🎉</span><span class="confetti c2">✨</span><span class="confetti c3">🎊</span>
+              </div>` : "";
+            /* bottom row gets clowned on */
+            const troll = loser ? `<span class="troll-emoji" aria-hidden="true">🤡</span>` : "";
+            return `${subHeader}<div class="card lb-row ${leader ? "leader" : ""}${loser ? " loser" : ""}">
+              ${celebrate}${troll}
               <div class="lb-rank">${i < 3 ? medals[i] : i + 1}</div>
               <div class="flag-avatar">${playerFlag(r.name)}</div>
               <div class="lb-name">
