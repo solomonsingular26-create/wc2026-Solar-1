@@ -275,48 +275,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
    ================================================================= */
 .screen.space {
   position: relative;
-  background:
-    /* stars — tiny radial dots at fixed spots */
-    radial-gradient(1.5px 1.5px at 12% 18%, #fff 60%, transparent),
-    radial-gradient(1px 1px at 28% 44%, rgba(255,255,255,.9) 60%, transparent),
-    radial-gradient(2px 2px at 41% 9%,  rgba(255,255,255,.8) 60%, transparent),
-    radial-gradient(1px 1px at 55% 31%, #fff 60%, transparent),
-    radial-gradient(1.5px 1.5px at 67% 62%, rgba(255,255,255,.85) 60%, transparent),
-    radial-gradient(1px 1px at 78% 15%, #fff 60%, transparent),
-    radial-gradient(2px 2px at 88% 40%, rgba(255,255,255,.75) 60%, transparent),
-    radial-gradient(1px 1px at 8%  70%, rgba(255,255,255,.9) 60%, transparent),
-    radial-gradient(1.5px 1.5px at 22% 88%, #fff 60%, transparent),
-    radial-gradient(1px 1px at 47% 76%, rgba(255,255,255,.8) 60%, transparent),
-    radial-gradient(2px 2px at 62% 93%, rgba(255,255,255,.7) 60%, transparent),
-    radial-gradient(1px 1px at 83% 81%, #fff 60%, transparent),
-    radial-gradient(1.5px 1.5px at 94% 66%, rgba(255,255,255,.85) 60%, transparent),
-    radial-gradient(1px 1px at 35% 58%, rgba(255,255,255,.7) 60%, transparent),
-    /* nebula tints */
-    radial-gradient(ellipse 60% 40% at 75% 10%, rgba(99,102,241,.28), transparent),
-    radial-gradient(ellipse 50% 35% at 15% 85%, rgba(168,85,247,.22), transparent),
-    /* deep space base */
-    linear-gradient(180deg, #0b1026 0%, #131a3a 45%, #0a0e22 100%);
+  background: #000;   /* plain black board */
 }
-
-/* twinkling overlay — a second star layer that fades in and out */
-.screen.space::before {
-  content: "";
-  position: absolute; inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(1.5px 1.5px at 18% 33%, #fff 60%, transparent),
-    radial-gradient(1px 1px at 52% 12%, #fff 60%, transparent),
-    radial-gradient(2px 2px at 72% 48%, rgba(255,255,255,.9) 60%, transparent),
-    radial-gradient(1px 1px at 90% 74%, #fff 60%, transparent),
-    radial-gradient(1.5px 1.5px at 38% 91%, rgba(255,255,255,.9) 60%, transparent),
-    radial-gradient(1px 1px at 5% 52%, #fff 60%, transparent);
-  animation: twinkle 3.2s ease-in-out infinite;
-}
-@keyframes twinkle {
-  0%, 100% { opacity: .15; }
-  50%       { opacity: .95; }
-}
-/* keep leaderboard content above the twinkle layer */
 .screen.space > * { position: relative; z-index: 1; }
 
 /* light-on-dark text tweaks inside space mode */
